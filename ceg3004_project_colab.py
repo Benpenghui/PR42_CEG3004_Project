@@ -329,20 +329,49 @@ Baseline = Logistic Regression.
 #@title 8) Train/Validation + Baseline model
 import joblib
 from google.colab import files
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 
 X_tr, X_va, y_tr, y_va = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
 # 🟨 STUDENT TODO: Change model/hyperparameters
-from sklearn.svm import SVC
 
-model = Pipeline([
+# Experiment 1: Logistic Regression (baseline)
+m1 = Pipeline([
+    ('scaler', StandardScaler()),
+    ('clf', LogisticRegression(max_iter=2000, class_weight='balanced'))
+])
+m1.fit(X_tr, y_tr)
+f1_m1 = f1_score(m1.predict(X_va), y_va, average='macro')
+print('--- Logistic Regression ---')
+print('Macro-F1:', f1_m1)
+
+# Experiment 2: Random Forest
+m2 = Pipeline([
+    ('scaler', StandardScaler()),
+    ('clf', RandomForestClassifier(n_estimators=300, class_weight='balanced', n_jobs=-1, random_state=42))
+])
+m2.fit(X_tr, y_tr)
+f1_m2 = f1_score(m2.predict(X_va), y_va, average='macro')
+print('--- Random Forest ---')
+print('Macro-F1:', f1_m2)
+
+# Experiment 3: SVM (RBF)
+m3 = Pipeline([
     ('scaler', StandardScaler()),
     ('clf', SVC(kernel='rbf', C=10, gamma='scale', class_weight='balanced', probability=True))
 ])
+m3.fit(X_tr, y_tr)
+f1_m3 = f1_score(m3.predict(X_va), y_va, average='macro')
+print('--- SVM (RBF) ---')
+print('Macro-F1:', f1_m3)
 
-model.fit(X_tr, y_tr)
+# Select best model
+scores = {'Logistic Regression': (m1, f1_m1), 'Random Forest': (m2, f1_m2), 'SVM (RBF)': (m3, f1_m3)}
+best_name, (model, best_score) = max(scores.items(), key=lambda x: x[1][1])
+
 y_pred = model.predict(X_va)
-
+print(f'\nBest model: {best_name} ({best_score:.4f})')
 print(classification_report(y_va, y_pred, target_names=[idx_to_label[i] for i in range(len(classes))]))
 print('Macro-F1:', f1_score(y_va, y_pred, average='macro'))
 
